@@ -18,13 +18,11 @@ package allezon;
 
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.*;
-import org.apache.kafka.streams.state.WindowStore;
 
 import java.time.Duration;
 import java.util.Properties;
@@ -62,7 +60,7 @@ public class AllezonAggregator {
 
         final StreamsBuilder builder = new StreamsBuilder();
 
-        final KStream<String, KafkaUserTag> userTags = builder.stream(USER_TAGS_TOPIC); // todo split for VIEW/BUY
+        final KStream<String, KafkaUserTag> userTags = builder.stream(USER_TAGS_TOPIC); // todo split na BUY_TOPIC i VIEW_TOPIC, może w oddzielnych instancjach aplikacji na oddzielnych maszynach
         final KStream<KafkaUserTag, KafkaUserTag> userTagsMapped = userTags
                 .map((k, v) -> new KeyValue<>(v, v));
 
@@ -72,6 +70,7 @@ public class AllezonAggregator {
                 .windowedBy(TimeWindows.ofSizeWithNoGrace(windowSize));
 
         userTagsTable.count(Materialized.with(kafkaUserTagSerde, Serdes.Long()));
+        // zamiast samego count - customowy aggregator, który by policzył count i sumę cen, wtedy value będzie Pair<Long, Long> i trzeba odpowiednio pozmieniać w kilku miejscach
 
         return new KafkaStreams(builder.build(), streamsConfiguration);
     }
